@@ -58,6 +58,3 @@ python manage.py test
 ```bash
 python manage.py test --verbosity=2
 ```
-
-python manage.py test myapp.tests.AccountTests
-python manage.py test myapp.tests.AccountTests.test_create_account
