@@ -23,26 +23,30 @@ class TaskSerializer(serializers.ModelSerializer):
             'approved_on': {'read_only': True}
         }
 
-        def validate(self, data):
-            '''
-            Customized field validation
+    def validate(self, data):
+        '''
+        Customized field validation
 
-            Users with employee profile can assign to an active and unassigned task
-            Task assignee can only unassign themselves from the task
-            Only task assignee can submit a task to review
-            Only task owner can update a task detail and approve a task (after it has been put to review)
-            '''
+        Users with employee profile can assign to an active and unassigned task
+        Task assignee can only unassign themselves from the task
+        Only task assignee can submit a task to review
+        Only task owner can update a task detail and approve a task (after it has been put to review)
+        '''
 
+        request = self.context.get('request')
+
+        # Check if the request is a PUT or PATCH request
+        if request and request.method in ['PUT', 'PATCH']:
             user = self.context['request'].user
             user_profile = UserProfile.objects.get(user=user)
             task = self.instance
 
             for field in ['name', 'description', 'output']:
                 if field in data:
-                    if user_profile.is_employer:
-                        raise serializers.ValidationError(f"{ {field}: 'Your do not have the permission to change this field'}")   
+                    if not user_profile.is_employer:
+                        raise serializers.ValidationError({field: "Your do not have the permission to change this field"})   
                     elif task.owner != user:
-                        raise serializers.ValidationError(f"{ {field}: 'Only the owner of the task can change this field'}") 
+                        raise serializers.ValidationError({field: "Only the owner of the task can change this field"}) 
             
 
             if 'assignee' in data:
@@ -78,36 +82,41 @@ class TaskSerializer(serializers.ModelSerializer):
                 else:
                     if task.status == Task.Status.NOT_STARTED or task.status == Task.Status.IN_PROGRESS:
                         raise serializers.ValidationError({"is_approved": "Cannot approve before the task is submitted"})
-                    elif task.instance.owner!= user:
+                    elif task.owner!= user:
                         raise serializers.ValidationError({"is_submitted": "Only the task owner can change this field"})
-    
-        def update(self, instance, validated_data):
-            '''
-            Automated updates of read-only fields, forbid users from updating an inactive task
-            '''
+                    
+        return data
 
-            if not instance.is_active:
-                raise serializers.ValidationError("You cannot update an inactive task")
-            
-    
-            if 'assignee' in validated_data:
-                if validated_data['assignee'] is None:
+    def update(self, instance, validated_data):
+        '''
+        Automated updates of read-only fields, forbid users from updating an inactive task
+        '''
+
+        if not instance.is_active:
+            raise serializers.ValidationError("You cannot update an inactive task")
+        
+        for attr, value in validated_data.items():
+            if attr == 'assignee':
+                if value is None:
                     instance.status = Task.Status.NOT_STARTED
                 else:
                     instance.status = Task.Status.IN_PROGRESS
-            
-            if 'is_submitted' in validated_data and validated_data['is_submitted'] is True:
+                instance.assignee = value
+        
+            elif attr == 'is_submitted' and value:
                 instance.status = Task.Status.IN_REVIEW
                 instance.submitted_on = timezone.now()
 
-            if 'is_approved' in validated_data and validated_data['is_approved'] is True:
+            elif attr == 'is_approved' and value:
                 instance.status = Task.Status.DONE
                 instance.approved_on = timezone.now()
-
-            if instance.status == Task.Status.DONE:
                 instance.is_active = False
 
-            instance.save()
+            else:
+                setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class UserSerializer(serializers.ModelSerializer):

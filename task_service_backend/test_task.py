@@ -16,6 +16,10 @@ class TaskTests(APITestCase):
     """
 
     def setUp(self) -> None:
+        """
+        Test setup, prepared several test users and tasks
+        """
+
         # create users with profile 'employer'
         self.user_employer_1 = User.objects.create_user(username='user_1', password='mysecretpassword')
         self.user_employer_2 = User.objects.create_user(username='user_2', password='password1234')
@@ -34,12 +38,16 @@ class TaskTests(APITestCase):
         self.test_task_2 = Task.objects.create(name='coding', description='code me a ray tracer', owner=self.user_employer_2)
     
     def set_user_profile(self, info: Dict[User, bool]) -> None:
+        """
+        Set the user profile by giving a dictionary of user object and profile boolean
+        """
+
         for key, value in info.items():
             UserProfile.objects.create(user=key, is_employer=value)
 
     def test_retrieving_list_of_tasks(self):
         """
-        Test GET request for retrieving list of tasks, no authentication is required
+        Test GET request for retrieving list of tasks, no authentication is required 
         """
 
         # list_url = f"{reverse('task-list')}?page=1&page_size=10"
@@ -52,7 +60,7 @@ class TaskTests(APITestCase):
     
     def test_retrieving_task_by_id(self):
         """
-        Test GET request for retrieving the details of a task by its id
+        Test GET request for retrieving the details of a task by its id, no authentication is required
         """
     
         task_id = self.test_task_1.pk
@@ -97,7 +105,7 @@ class TaskTests(APITestCase):
     
     def test_task_creation_auth_user_employee(self):
         """
-        
+        Test POST request to create a task with an authenticated user who has a profile of employee -> should fail
         """
 
         create_url = reverse('task-list')
@@ -114,6 +122,7 @@ class TaskTests(APITestCase):
        
     def test_task_creation_unauthenticated(self):
         """
+        Test POST request with an unauthenticated user -> should fail
         """
 
         create_url = reverse('task-list')
@@ -134,10 +143,11 @@ class TaskTests(APITestCase):
 
     def test_task_update_auth_owner(self):
         """
-
+        Test PUT request to update task details (name, description, outout) with an authenticated user who is the owner 
+        of the task. Only authenticated task owner is allowed to update task details
         """
 
-        put_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
         
         data = {
             'name': 'studying',
@@ -148,7 +158,7 @@ class TaskTests(APITestCase):
         # only task owner can update the task
         self.assertEqual(self.test_task_1.owner, self.user_employer_1)
         self.client.login(username=self.user_employer_1, password='mysecretpassword')
-        response = self.client.put(put_url, data, format='json')
+        response = self.client.put(update_url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -160,6 +170,8 @@ class TaskTests(APITestCase):
 
     def test_task_update_auth_non_owner(self):
         """
+        Test PUT request to update task details (name, description, output) with an authenticated user whose is not the task 
+        owner -> should fail
         """
 
         put_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
@@ -172,16 +184,19 @@ class TaskTests(APITestCase):
 
         # Authenticated users who are not the owner of the task are banned from updating the task
         self.assertNotEqual(self.test_task_1.owner, self.user_employer_2)
-        self.client.login(username=self.user_employer_2, password='passcode1234')
+        self.client.login(username=self.user_employer_2.username, password='password1234')
         response = self.client.put(put_url, data, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        # For put, patch, we check if the person who is making the request are allowed to update the fields he / she is trying to
+        # modify in validation, so respond 400 if fails 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_task_update_unauthenticated(self):
         """
+        Test PUT request to update task details (name, description, output) with an unauthenticated user -> should fail
         """
 
-        put_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
         
         data = {
             'name': 'studying',
@@ -189,33 +204,313 @@ class TaskTests(APITestCase):
             'output': 'a paper review'
         }
 
-        response_1 = self.client.post(put_url, data, format='json')
+        response_1 = self.client.put(update_url, data, format='json')
         self.assertEqual(response_1.status_code, status.HTTP_403_FORBIDDEN)
 
         self.client.login(username=self.user_employer_1.username, password='wrongpassword') 
-        response_2 = self.client.post(put_url, data, format='json')
+        response_2 = self.client.put(update_url, data, format='json')
         self.assertEqual(response_2.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_task_patch_auth_user(self):
-        pass
+    def test_task_patch_auth_owner(self):
+        """
+        Test Patch request to partially update task details with an authenticated user who is the task owner. Only authenticated
+        task owner is allow to modify the task details
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        data = {
+            'name': 'bedroom cleaning'
+        }
+
+        self.assertEqual(self.test_task_1.owner, self.user_employer_1)
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+        response = self.client.patch(update_url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.name, 'bedroom cleaning')   
+    
+    def test_task_patch_non_owner(self):
+        """
+        Test PATCH request to partically update task details with an authenticated user who is not the task owner -> should fail
+        """
+        
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        
+        data = {
+            'name': 'bedroom cleaning'
+        }
+
+        # Authenticated users who are not the owner of the task are banned from updating the task
+        self.assertNotEqual(self.test_task_1.owner, self.user_employer_2)
+        self.client.login(username=self.user_employer_2.username, password='password1234')
+        response = self.client.patch(update_url, data, format='json')
+
+        # We check if he/she edit certain fields in validtion based on their role,  so return bad request when it is failed 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) 
 
     def test_task_patch_unauthenticated(self):
-        pass
+        """
+        Test PATCH request to partically update task details (name, description, output) with unauthenticated users -> should fail
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        
+        data = {
+            'name': 'bedroom cleaning'
+        }
+
+        response_1 = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response_1.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.client.login(username=self.user_employer_1.username, password='wrongpassword') 
+        response_2 = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response_2.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_task_deletion_auth_task_owner(self):
-        pass
+        """
+        Test DELETE request to delete a task with an authenticated user who is the task owner. Only authenticated task owner
+        is allowed to delete the task
+        """
+        
+        delete_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        self.assertEqual(self.test_task_1.owner, self.user_employer_1)
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)     
 
     def test_task_deletion_auth_non_owner(self):
-        pass
+        """
+        Test DELETE request to delete a task with an authenticated user who is not the task owner -> should fail
+        """
+
+        delete_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        self.assertNotEqual(self.test_task_1.owner, self.user_employer_2)
+        self.client.login(username=self.user_employer_2.username, password='password1234')
+
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)   
 
     def test_task_deletion_unauthenticated(self):
-        pass
+        """
+        Test DELETE request to delete a task with unauthenticated users -> should fail
+        """
 
+        delete_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  
+
+    def test_task_deletion_auth_employee(self):
+        """
+        Test DELETE request to delete a task with authenticated user whose profile is employee -> should fail
+        """
+
+        delete_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  
     
-    # Test authentication and permission for User viewset
+    def test_task_self_assignation_auth_employee(self):
+        """
+        Test assigning a task to themselves by an authenticated user whose profile is employee. Only employees can access
+        this fielf and an employee can only assign a task to themselves
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        data = {
+            'assignee': self.user_employee_1.id
+        }
+
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.assignee, self.user_employee_1)
+        self.assertEqual(self.test_task_1.status, Task.Status.IN_PROGRESS)
+
+    def test_task_assignation_other_auth_employee(self):
+        """
+        Test assigning a task to someone else by an authenticated user whose profile is employee -> should fail
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+
+        data = {
+            'assignee': self.user_employee_2.id
+        }
+
+        response = self.client.patch(update_url, data, format='json')
+
+        # We customized validation to check if a user can modify a protected field based on their role and how he/she is allowed
+        # to modify. User cannot assign the tasks to someone else except for themselves
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_task_assignation_auth_employer(self):
+        """
+        Test assigning a task by an authenticated user whose profile is employer -> should fail
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+
+        data = {
+            'assignee': self.user_employer_1.id
+        }
+
+        response = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+    def test_task_assignation_unauthenticated(self):
+        """
+        Test assigning a task by an unauthenticated user -> should fail
+        """
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        data = {
+            'assignee': self.user_employer_1.id
+        }
 
+        response = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_task_dismission(self):
+        """
+        Test PATCH request to reassign and unassign the task assignee, the task assignee can only unassign themselves 
+        from a task and they are prevented to reassign the task to someone else
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+
+        data = {
+            'assignee': self.user_employee_1.id
+        }
+        
+        response = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.test_task_1.refresh_from_db()
+
+        data_2 = {
+            'assignee': self.user_employee_2.id
+    
+        }
+        response_2 = self.client.patch(update_url, data_2, format='json')
+        self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data_3 = {
+            'assignee': None
+        }
+        response_3 = self.client.patch(update_url, data_3, format='json')
+        self.assertEqual(response_3.status_code, status.HTTP_200_OK)
+
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.assignee, None)
+        self.assertEqual(self.test_task_1.status, Task.Status.NOT_STARTED)
+
+    def test_task_submission(self):
+        """
+        Test PATCH request to submit a task, only the task assignee can submit a task and the status will be changed to 
+        'In Review' automatically 
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        data = {
+            'assignee': self.user_employee_1.id
+        }
+
+        data_submit = {
+            'is_submitted': True
+        }
+
+        # Assign the task
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.test_task_1.refresh_from_db()
+
+        # Log out
+        self.client.logout()
+
+        # Log in another account who is not the assignee for this task
+        self.client.login(username=self.user_employee_2.username, password='passcode1234')
+        response_2 = self.client.patch(update_url, data_submit, format='json')
+        self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Log out
+        self.client.logout()
+
+        # Log in with the account who is the assignee of the task
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+
+        # Submit the task
+        response_3 = self.client.patch(update_url, data_submit, format='json')
+        self.assertEqual(response_3.status_code, status.HTTP_200_OK)
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.assignee, self.user_employee_1)
+        self.assertEqual(self.test_task_1.status, Task.Status.IN_REVIEW)
+
+    def test_task_approval(self):
+        """
+        """
+
+        update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
+
+        data = {
+            'assignee': self.user_employee_1.id
+        }
+
+        data_submit = {
+            'is_submitted': True
+        }
+
+        data_approve = {
+            'is_approved': True
+        }
+
+        # Assign the task
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.patch(update_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.assignee, self.user_employee_1)
+        self.assertEqual(self.test_task_1.status, Task.Status.IN_PROGRESS)
+
+        # Submit the task
+        response_2 = self.client.patch(update_url, data_submit, format='json')
+        self.assertEqual(response_2.status_code, status.HTTP_200_OK)
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.assignee, self.user_employee_1)
+        self.assertEqual(self.test_task_1.status, Task.Status.IN_REVIEW)
+
+        # Approve the task
+        response_3 = self.client.patch(update_url, data_approve, format='json')
+        self.assertEqual(response_3.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.client.logout()
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+        response_4 = self.client.patch(update_url, data_approve, format='json')
+        self.assertEqual(response_4.status_code, status.HTTP_200_OK)
+        self.test_task_1.refresh_from_db()
+        self.assertEqual(self.test_task_1.status, Task.Status.DONE)
+        self.assertEqual(self.test_task_1.is_active, False)
+
+        # Try to change the task details when task is inactive 
+        data_update ={
+            'name': 'trying to change name when task is inactive'
+        }
+        response_5 = self.client.patch(update_url, data_update, format='json')
+        self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
     
     
 

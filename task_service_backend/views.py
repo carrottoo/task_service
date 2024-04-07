@@ -77,7 +77,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def recommendations(self, request):
         """
-        
+        Task recommendation 
         """
         user = request.user
         ranked_tasks = self.service.get_user_task_rank(user)

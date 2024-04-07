@@ -16,7 +16,7 @@ class IsEmployer(permissions.BasePermission):
         
         # Check if the user has a profile and is marked as an employer
         user_profile = getattr(request.user, 'profile', None)
-        
+
         return user_profile and user_profile.is_employer
 
 
@@ -45,7 +45,7 @@ class IsTaskOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        if getattr(request.user, 'profile', None) and request.user.profile.is_employee:
+        if getattr(request.user, 'profile', None) and not request.user.profile.is_employer:
             return False
         
         return obj.owner == request.user
