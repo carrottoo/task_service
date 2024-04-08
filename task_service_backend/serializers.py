@@ -150,6 +150,10 @@ class PropertySerializer(serializers.ModelSerializer):
         model = Property
         fields = ['id', 'name', 'creator']
 
+        extra_kwargs = {
+        'creator': {'read_only': True}
+        }
+
 
 class TaskPropertySerializer(serializers.ModelSerializer):
     class Meta:

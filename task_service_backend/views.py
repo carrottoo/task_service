@@ -203,19 +203,28 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
         return [permission() for permission in permission_classes]
     
+    def perform_create(self, serializer):
+        """
+        Automatically set the property creator as the user who created the property
+        """
+
+        serializer.save(
+            creator = self.request.user
+        )
+
     def update(self, request, *args, **kwargs):
         """
         Override the update method to prevent updating an existing property
         """
 
-        return Response({"error": "Property cannot be modified once created."}, status=status.HTTP_403_FORBIDDEN)
+        return Response({"error": "Property cannot be modified once created"}, status=status.HTTP_403_FORBIDDEN)
 
     def partial_update(self, request, *args, **kwargs):
         """
         Override the update method to prevent partcially updating an existing property
         """
          
-        return Response({"error": "Property cannot be modified once created."}, status=status.HTTP_403_FORBIDDEN)
+        return Response({"error": "Property cannot be modified once created"}, status=status.HTTP_403_FORBIDDEN)
     
 
 class TaskPropertyViewSet(viewsets.ModelViewSet):

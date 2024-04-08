@@ -462,6 +462,7 @@ class TaskTests(APITestCase):
 
     def test_task_approval(self):
         """
+        Test PATCH request
         """
 
         update_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
@@ -512,7 +513,8 @@ class TaskTests(APITestCase):
         response_5 = self.client.patch(update_url, data_update, format='json')
         self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
     
-    
+    def test_task_recommendation(self):
+        pass
 
 
 

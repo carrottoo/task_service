@@ -39,7 +39,7 @@ class Task(models.Model):
    
     assignee = models.ForeignKey(User, default = None, null=True, on_delete=models.SET_NULL, related_name='assigned_tasks')
 
-    owner = models.ForeignKey(User, null=True, on_delete=models.CASCADE, related_name='owned_tasks')
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_tasks')
 
     is_submitted = models.BooleanField(default=False)
 
