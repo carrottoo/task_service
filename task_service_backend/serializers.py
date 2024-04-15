@@ -1,6 +1,13 @@
 from rest_framework import serializers
 from task_service_backend.models import *
 from django.contrib.auth.models import User
+from rest_framework.exceptions import PermissionDenied
+
+
+'''
+    Field restriction -> validation in serialziers
+    Endpoint restriction (whether you can access it or not) -> view + permissions
+'''
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -57,7 +64,7 @@ class TaskSerializer(serializers.ModelSerializer):
                     if task.assignee != user:
                         raise serializers.ValidationError({"assignee": "Only the current task assignee can change this field "})
                     elif new_assignee is not None:
-                        raise serializers.ValidationError({"assignee": "You can only unassign yourself from the task."})
+                        raise serializers.ValidationError({"assignee": "You can only unassign yourself from the task"})
                 
                 else:
                     if user_profile.is_employer:
@@ -159,6 +166,33 @@ class TaskPropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskProperty
         fields = ['id', 'task', 'property']
+    
+    def validate(self, data):
+        """
+        Validation logics in the creation, updates and partial updates of the task property object
+
+        An authorized user trying to link a task to a property tag -> he/she must own the task 
+        An authorized user trying to relink a task he/she owns to another property tag -> fine
+        An authorized user trying to relink a property tag to another task, he/she must also own the task to which he/she 
+        wants to link the property tag to 
+        """
+
+        request = self.context.get('request')
+
+        if request and request.method in ['POST', 'PUT', 'PATCH']:
+            request_user = self.context['request'].user
+            task_instance = self.instance.task if self.instance else None
+            new_task = data.get('task', task_instance)
+
+            if task_instance and new_task != task_instance:
+                if not new_task.owner == request_user:
+                    raise serializers.ValidationError({"task": "You can only relink properties to tasks you own."})
+            
+            if new_task and not task_instance:
+                if data['task'].owner != request_user:
+                    raise serializers.ValidationError({"task": "You can only link properties to your own tasks."})
+
+            return data
 
 
 class UserPropertySerializer(serializers.ModelSerializer):
@@ -166,13 +200,76 @@ class UserPropertySerializer(serializers.ModelSerializer):
         model = UserProperty
         fields = ['id', 'is_interested', 'user', 'property']
 
+    def validate(self, data):
+        """
+        Validation logics against the creation, update and partial update of the user property object
+
+        As an authorized user, you can only link a property to yourself, you cannot created linkage for others
+        As an authorized user, you cannot relink a property to someone else  
+        """
+
+        request = self.context.get('request')
+
+        if request:
+            if request.method == 'POST':
+                request_user = self.context['request'].user
+
+                if data['user'] and data['user'] != request_user:
+                    raise serializers.ValidationError({"user": "You can only create linkage to a property for yourself."})
+            
+            elif request.method in ['PUT', 'PATCH']:
+                new_user = data.get('user', None)
+                if new_user and new_user!= self.instance.user:
+                    raise serializers.ValidationError({"user": "You cannot link the property to someone else."})
+                
+        return data
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['id', 'user', 'is_employer']
+    
+    def validate(self, data):
+        """
+        Validation logics for the creation of a user profile
+
+        As an authorized user, you can only have one profile that is prohibited from modifying once created. 
+        """
+
+        request = self.context.get('request')
+
+        if request and request.method == 'POST':
+            request_user = self.context['request'].user
+            if data['user'] and data['user'] != request_user:
+                raise serializers.ValidationError({"user": "You can only set profile for yourself."})
+
+        return data
+                
 
 class UserBehaviorSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserBehavior
         fields = ['id', 'user', 'task', 'is_like']
+    
+    def validate(self, data):
+        """
+        Validation logics for the creation of a user bahavior
+
+        As an authorized user, you can only have one profile that is prohibited from modifying once created. 
+        """
+
+        request = self.context.get('request')
+
+        if request and request.method == 'POST':
+            request_user = self.context['request'].user
+            if data['user'] and data['user'] != request_user:
+                raise serializers.ValidationError({"user": "You can only set a behavior for yourself."})
+            
+        elif request.method in ['PUT', 'PATCH']:
+            new_user = data.get('user', None)
+            if new_user and new_user!= self.instance.user:
+                raise serializers.ValidationError({"user": "You cannot remap your behavior to someone else."})
+            
+
+        return data

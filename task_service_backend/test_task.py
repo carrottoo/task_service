@@ -6,6 +6,7 @@ from .models import *
 from django.contrib.auth.models import User
 from typing import List, Dict
 
+# TODO need to check the test case and task recommendation 
 class TaskTests(APITestCase):
     """
     Using reverse() to generate url for TaskViewSet registered with the router 
@@ -188,7 +189,7 @@ class TaskTests(APITestCase):
         response = self.client.put(put_url, data, format='json')
 
         # For put, patch, we check if the person who is making the request are allowed to update the fields he / she is trying to
-        # modify in validation, so respond 400 if fails 
+        # modify in validation, so respond 400 if fails
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_task_update_unauthenticated(self):

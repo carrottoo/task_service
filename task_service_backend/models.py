@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 default_name_length = 100
@@ -122,7 +123,8 @@ class UserProfile(models.Model):
     """
     One to one relationship between user and profile, user must decide whether he/she wants to be
     a employer who can only publish tasks or a employee who can only take tasks to complete. Users
-    aren't allowed to take dual profiles
+    aren't allowed to take dual profiles. Since we have defined the one to one relationship between 
+    User and UserProfile, the uniqueness of profile will be ensured on the database level
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')

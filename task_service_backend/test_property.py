@@ -36,6 +36,7 @@ class PropertyTests(APITestCase):
         """
         Test GET request for the list retrieval of property 
         """
+        
         list_url = reverse('property-list')
         response = self.client.get(list_url)
 
@@ -94,7 +95,7 @@ class PropertyTests(APITestCase):
 
     def test_property_partial_update(self):
         """
-        Test PUT request to partically update a property tag, this endpoint has been disabled to maintain the data consistency in the database
+        Test PATCH request to partically update a property tag, this endpoint has been disabled to maintain the data consistency in the database
         """
 
         update_url = reverse('property-detail', kwargs={'pk': self.property_1.id})
@@ -104,7 +105,7 @@ class PropertyTests(APITestCase):
         }
 
         self.client.login(username=self.user_employer.username, password='mysecretpassword')
-        response = self.client.put(update_url, data, format='json')
+        response = self.client.patch(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.data['error'], 'Property cannot be modified once created')
 

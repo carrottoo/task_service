@@ -45,6 +45,9 @@ class IsTaskOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
         if getattr(request.user, 'profile', None) and not request.user.profile.is_employer:
             return False
         
@@ -59,6 +62,9 @@ class IsTaskAssigneeOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
+        
+        if not request.user or not request.user.is_authenticated:
+            return False
         
         if obj.status == Task.Status.IN_REVIEW:
             return False
@@ -78,6 +84,9 @@ class IsUserOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
         return obj.user == request.user
     
 
@@ -89,16 +98,21 @@ class IsCreatorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
+        
+        if not request.user or not request.user.is_authenticated:
+            return False
 
         return obj.creator == request.user
 
 
-class IsPropertyLinkedTaskOwnerOrReadOnly(permissions.BasePermissionMetaclass):
+class IsPropertyLinkedTaskOwnerOrReadOnly(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
+
+        if not request.user or not request.user.is_authenticated:
+            return False
         
         # mapped_task = get_object_or_404(Task, pk=obj.task)
-
         return obj.task.owner == request.user

@@ -236,7 +236,17 @@ class TaskPropertyViewSet(viewsets.ModelViewSet):
 
     queryset = TaskProperty.objects.all()
     serializer_class = TaskPropertySerializer
-    permission_classes = [IsPropertyLinkedTaskOwnerOrReadOnly]
+    
+    def get_permissions(self):
+        """
+        Instantiates and returns a list of permissions for the view 
+        """
+
+        if self.action == 'create':
+            permission_classes = [IsEmployer]
+        else:
+            permission_classes = [IsPropertyLinkedTaskOwnerOrReadOnly]
+        return [permission() for permission in permission_classes]
 
 
 class UserPropertyViewSet(viewsets.ModelViewSet):
@@ -274,7 +284,17 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
-    permission_classes = [IsUserOrReadOnly]
+
+    def get_permissions(self):
+        """
+        Instantiates and returns a list of permissions for the view 
+        """
+
+        if self.action == 'create':
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsUserOrReadOnly]
+        return [permission() for permission in permission_classes]
     
     def update(self, request, *args, **kwargs):
         """
@@ -300,7 +320,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
         if User.objects.filter(id=user.id).exists():
             # Prevent deletion of UserProfile if User exists
-            return Response({"error": "Cannot delete UserProfile while the User exists."},
+            return Response({"error": "Cannot delete profile while the user exists."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         # If the User does not exist, proceed with deletion
@@ -315,5 +335,14 @@ class UserBehaviorViewSet(viewsets.ModelViewSet):
     """
 
     queryset = UserBehavior.objects.all()
-    serializer_class = UserProfileSerializer
-    permission_classes = [IsUserOrReadOnly]
+    serializer_class = UserBehaviorSerializer
+    def get_permissions(self):
+        """
+        Instantiates and returns a list of permissions for the view 
+        """
+
+        if self.action == 'create':
+            permission_classes = [IsEmployee]
+        else:
+            permission_classes = [IsUserOrReadOnly]
+        return [permission() for permission in permission_classes]
