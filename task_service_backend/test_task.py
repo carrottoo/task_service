@@ -97,12 +97,19 @@ class TaskTests(APITestCase):
         self.assertEqual(Task.objects.count(), 3) # in setup, we have two task instances created
 
         newly_created_task = Task.objects.latest('id')
-        self.assertEqual(newly_created_task.owner, self.user_employer_1)
-        self.assertEqual(newly_created_task.status, Task.Status.NOT_STARTED)
-        self.assertEqual(newly_created_task.is_active, True)
-        self.assertEqual(newly_created_task.is_submitted, False)
-        self.assertEqual(newly_created_task.is_approved, False)
-        #TODO:  more default and auto-set fields
+        self.assertEqual(newly_created_task.name, 'test task')
+        self.assertEqual(newly_created_task.description, 'a test task description')
+        self.assertEqual(newly_created_task.output, "") # default to ""
+        self.assertEqual(newly_created_task.owner, self.user_employer_1) # automatically set to the creator
+        self.assertEqual(newly_created_task.assignee, None) # default to None
+        self.assertEqual(newly_created_task.status, Task.Status.NOT_STARTED) # automatically set to 'Not started'
+        self.assertEqual(newly_created_task.is_active, True) # default to True
+        self.assertEqual(newly_created_task.is_submitted, False) # default to False
+        self.assertEqual(newly_created_task.is_approved, False) # default to False
+        self.assertAlmostEqual(newly_created_task.created_on, timezone.now(), delta=timezone.timedelta(seconds=5))
+        self.assertAlmostEqual(newly_created_task.updated_on, timezone.now(), delta=timezone.timedelta(seconds=5))
+        self.assertEqual(newly_created_task.submitted_on, None) # default to None
+        self.assertEqual(newly_created_task.approved_on, None) # default to None
     
     def test_task_creation_auth_user_employee(self):
         """
@@ -188,9 +195,12 @@ class TaskTests(APITestCase):
         self.client.login(username=self.user_employer_2.username, password='password1234')
         response = self.client.put(put_url, data, format='json')
 
-        # For put, patch, we check if the person who is making the request are allowed to update the fields he / she is trying to
-        # modify in validation, so respond 400 if fails
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error_count'], 3)
+        for field in data.keys():
+            self.assertTrue(field in response.data['field_errors'].keys())
+            self.assertEqual(response.data['field_errors'][field]['message'],
+                            'Only the owner of the task can change this field.')
 
     def test_task_update_unauthenticated(self):
         """
@@ -250,7 +260,11 @@ class TaskTests(APITestCase):
         response = self.client.patch(update_url, data, format='json')
 
         # We check if he/she edit certain fields in validtion based on their role,  so return bad request when it is failed 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error_count'], 1)
+        self.assertTrue('name' in response.data['field_errors'].keys())
+        self.assertEqual(response.data['field_errors']['name']['message'], 
+                         'Only the owner of the task can change this field.')
 
     def test_task_patch_unauthenticated(self):
         """
@@ -355,6 +369,10 @@ class TaskTests(APITestCase):
         # We customized validation to check if a user can modify a protected field based on their role and how he/she is allowed
         # to modify. User cannot assign the tasks to someone else except for themselves
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error_count'], 1)
+        self.assertTrue('assignee' in response.data['field_errors'].keys())
+        self.assertEqual(response.data['field_errors']['assignee']['message'], 
+                         'You can only assign the task to yourself.')
 
     def test_task_assignation_auth_employer(self):
         """
@@ -370,7 +388,9 @@ class TaskTests(APITestCase):
 
         response = self.client.patch(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
+        self.assertTrue('assignee' in response.data['field_errors'].keys())
+        self.assertEqual(response.data['field_errors']['assignee']['message'], 
+                         'You do not have the permission to change the assignee.')
 
     def test_task_assignation_unauthenticated(self):
         """
@@ -407,11 +427,16 @@ class TaskTests(APITestCase):
         }
         response_2 = self.client.patch(update_url, data_2, format='json')
         self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response_2.data['error_count'], 1)
+        self.assertTrue('assignee' in response_2.data['field_errors'].keys())
+        self.assertEqual(response_2.data['field_errors']['assignee']['message'], 
+                         'You can only unassign yourself from the task.')
 
         data_3 = {
             'assignee': None
         }
         response_3 = self.client.patch(update_url, data_3, format='json')
+        
         self.assertEqual(response_3.status_code, status.HTTP_200_OK)
 
         self.test_task_1.refresh_from_db()
@@ -447,6 +472,10 @@ class TaskTests(APITestCase):
         self.client.login(username=self.user_employee_2.username, password='passcode1234')
         response_2 = self.client.patch(update_url, data_submit, format='json')
         self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response_2.data['error_count'], 1)
+        self.assertTrue('is_submitted' in response_2.data['field_errors'].keys())
+        self.assertEqual(response_2.data['field_errors']['is_submitted']['message'], 
+                         'Only the task assignee can change this field.')
 
         # Log out
         self.client.logout()
@@ -498,6 +527,10 @@ class TaskTests(APITestCase):
         # Approve the task
         response_3 = self.client.patch(update_url, data_approve, format='json')
         self.assertEqual(response_3.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response_3.data['error_count'], 1)
+        self.assertTrue('is_approved' in response_3.data['field_errors'].keys())
+        self.assertEqual(response_3.data['field_errors']['is_approved']['message'], 
+                         "You don't have the permission to change this field.")
 
         self.client.logout()
         self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
@@ -513,7 +546,7 @@ class TaskTests(APITestCase):
         }
         response_5 = self.client.patch(update_url, data_update, format='json')
         self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
-    
+         
     def test_task_recommendation(self):
         pass
 

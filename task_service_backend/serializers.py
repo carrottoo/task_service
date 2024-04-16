@@ -47,51 +47,53 @@ class TaskSerializer(serializers.ModelSerializer):
             user = self.context['request'].user
             user_profile = UserProfile.objects.get(user=user)
             task = self.instance
+            errors = {}
 
             for field in ['name', 'description', 'output']:
                 if field in data:
                     if not user_profile.is_employer:
-                        raise serializers.ValidationError({field: "Your do not have the permission to change this field"})   
+                        errors[field] = "Your do not have the permission to change this field."
                     elif task.owner != user:
-                        raise serializers.ValidationError({field: "Only the owner of the task can change this field"}) 
+                        errors[field] = "Only the owner of the task can change this field."
             
-
             if 'assignee' in data:
                 new_assignee = data.get('assignee')
 
                 # if the task being updated already has an assignee
                 if task and task.assignee:
                     if task.assignee != user:
-                        raise serializers.ValidationError({"assignee": "Only the current task assignee can change this field "})
+                        errors["assignee"] = "Only the current task assignee can change this field."
                     elif new_assignee is not None:
-                        raise serializers.ValidationError({"assignee": "You can only unassign yourself from the task"})
+                        errors["assignee"] = "You can only unassign yourself from the task."
                 
                 else:
                     if user_profile.is_employer:
-                        raise serializers.ValidationError({"assignee": "You do not have the permission to change the assignee"})
+                        errors["assignee"] = "You do not have the permission to change the assignee."
                     else:
                         if new_assignee is not None and new_assignee != user:
-                            raise serializers.ValidationError({"assignee": "You can only assign the task to yourself"}) 
-
+                            errors["assignee"] = "You can only assign the task to yourself."
         
             if 'is_submitted' in data:
                 if user_profile.is_employer:
-                    raise serializers.ValidationError({"is_submitted": "You don't have the permission to change this field"})
+                    errors["is_submitted"] = "You don't have the permission to change this field."
                 else:
                     if task.status == Task.Status.NOT_STARTED:
-                        raise serializers.ValidationError({"is_submitted": "Cannot submit before the task is started"})
+                        errors["is_submitted"] = "Cannot submit before the task is started."
                     elif task.assignee != user:
-                        raise serializers.ValidationError({"is_submitted": "Only the task assignee can change this field"})
+                        errors["is_submitted"] = "Only the task assignee can change this field."
                     
             if 'is_approved' in data:
                 if not user_profile.is_employer:
-                    raise serializers.ValidationError({"is_approved": "You don't have the permission to change this field"})
+                    errors["is_approved"] = "You don't have the permission to change this field."
                 else:
                     if task.status == Task.Status.NOT_STARTED or task.status == Task.Status.IN_PROGRESS:
-                        raise serializers.ValidationError({"is_approved": "Cannot approve before the task is submitted"})
+                        errors["is_approved"] = "Cannot approve before the task is submitted."
                     elif task.owner!= user:
-                        raise serializers.ValidationError({"is_submitted": "Only the task owner can change this field"})
-                    
+                        errors["is_approved"] = "Only the task owner can change this field."
+
+            if errors:
+                raise serializers.ValidationError(errors) 
+            
         return data
 
     def update(self, instance, validated_data):
@@ -260,16 +262,19 @@ class UserBehaviorSerializer(serializers.ModelSerializer):
         """
 
         request = self.context.get('request')
+        errors = {}
 
         if request and request.method == 'POST':
             request_user = self.context['request'].user
             if data['user'] and data['user'] != request_user:
-                raise serializers.ValidationError({"user": "You can only set a behavior for yourself."})
-            
+                errors["user"] = "You can only set a behavior for yourself."
+               
         elif request.method in ['PUT', 'PATCH']:
             new_user = data.get('user', None)
             if new_user and new_user!= self.instance.user:
-                raise serializers.ValidationError({"user": "You cannot remap your behavior to someone else."})
-            
+                errors["user"] = "You cannot remap your behavior to someone else."
+        
+        if errors:
+            raise serializers.ValidationError(errors)
 
         return data

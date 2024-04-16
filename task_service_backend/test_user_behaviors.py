@@ -148,6 +148,10 @@ class UserBehaviorsTests(APITestCase):
         response = self.client.put(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        self.behavior_1.refresh_from_db()
+        self.assertEqual(self.behavior_1.task, self.test_task_1)
+        self.assertEqual(self.behavior_1.is_like, False)
+
         # Remapped your behavior to another task, as long as the new targetted task hasn't been mapped before     
         data['task'] = self.test_task_2.id
         response = self.client.put(update_url, data, format='json')
@@ -197,6 +201,9 @@ class UserBehaviorsTests(APITestCase):
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
         response = self.client.patch(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.behavior_1.refresh_from_db()
+        self.assertEqual(self.behavior_1.is_like, False)
 
         # Authenticated user and also the user him/herself, trying to partially null is_like  -> should fail
         data['is_like'] = None

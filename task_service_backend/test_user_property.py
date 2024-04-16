@@ -110,10 +110,12 @@ class UserPropertyTests(APITestCase):
         self.assertTrue('user' in response.data['field_errors'].keys())
         self.assertEqual(response.data['field_errors']['user']['message'], 
                          'You can only create linkage to a property for yourself.')
+        
         data = {
             'property': self.property_2.id
         }
         response = self.client.post(create_url, data, format='json')
+        # 'user' is required 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_user_property_update(self):
@@ -145,6 +147,10 @@ class UserPropertyTests(APITestCase):
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
         response = self.client.put(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.user_property_1.refresh_from_db()
+        self.assertEqual(self.user_property_1.property, self.property_2)
+        self.assertEqual(self.user_property_1.is_interested, False)
 
         # Authenticated user and also the user him/herself, however the user wants to link the property to another user -> should fail
         data['user'] = self.user_employee_2.id
@@ -195,6 +201,9 @@ class UserPropertyTests(APITestCase):
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
         response = self.client.patch(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.user_property_1.refresh_from_db()
+        self.assertEqual(self.user_property_1.is_interested, False)
 
         # Authenticated user and also the user him/herself, trying to partially null is_interested  -> should fail
         data['is_interested'] = None

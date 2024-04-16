@@ -139,11 +139,17 @@ class TaskPropertyTests(APITestCase):
         self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
         response_3 = self.client.put(update_url, data, format='json')
         self.assertEqual(response_3.status_code, status.HTTP_200_OK)
+        
+        self.task_property_1.refresh_from_db()
+        self.assertEqual(self.task_property_1.property, self.property_2)
 
         # Authenticated users trying to link the property to another task he/she also owns -> should pass
         data['task'] = self.test_task_3.id
         response_4 = self.client.put(update_url, data, format='json')
         self.assertEqual(response_4.status_code, status.HTTP_200_OK)
+
+        self.task_property_1.refresh_from_db()
+        self.assertEqual(self.task_property_1.task, self.test_task_3)
 
         # Authenticated users trying to link the property to another task he/she doesn't own -> should fail
         data['task'] = self.test_task_2.id
@@ -198,9 +204,15 @@ class TaskPropertyTests(APITestCase):
         response_3 = self.client.patch(update_url, data, format='json')
         self.assertEqual(response_3.status_code, status.HTTP_200_OK)
 
+        self.task_property_1.refresh_from_db()
+        self.assertEqual(self.task_property_1.property, self.property_2)
+
         # Authenticated users trying to link the property to another task he/she also owns -> should pass
         response_4 = self.client.patch(update_url, data_2, format='json')
         self.assertEqual(response_4.status_code, status.HTTP_200_OK)
+        
+        self.task_property_1.refresh_from_db()
+        self.assertEqual(self.task_property_1.task, self.test_task_3)
 
         # Authenticated users trying to link the property to another task he/she doesn't own -> should fail
         data_2['task'] = self.test_task_2.id

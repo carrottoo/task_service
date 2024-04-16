@@ -151,4 +151,4 @@ class UserBehavior(models.Model):
         unique_together = ('user', 'task')  
 
     def __str__(self):
-        return f"{self.user.username} - {'liked' if self.is_like else 'disliked'} - {self.task.name}"
+        return f"{self.user.id} - {'liked' if self.is_like else 'disliked'} - {self.task.id}"

@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from .permissions import *
 from django.utils import timezone
+from django.db import IntegrityError
 
 
 
@@ -336,6 +337,7 @@ class UserBehaviorViewSet(viewsets.ModelViewSet):
 
     queryset = UserBehavior.objects.all()
     serializer_class = UserBehaviorSerializer
+
     def get_permissions(self):
         """
         Instantiates and returns a list of permissions for the view 
@@ -346,3 +348,4 @@ class UserBehaviorViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsUserOrReadOnly]
         return [permission() for permission in permission_classes]
+    
