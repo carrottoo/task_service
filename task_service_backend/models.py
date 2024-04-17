@@ -144,11 +144,11 @@ class UserBehavior(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_behaviors')
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='task_behaviors')
-    is_like = models.BooleanField()
+    is_like = models.BooleanField(default=True)
 
     class Meta:
         # Ensures that each user-task pair is unique
         unique_together = ('user', 'task')  
 
     def __str__(self):
-        return f"{self.user.id} - {'liked' if self.is_like else 'disliked'} - {self.task.id}"
+        return f"User {self.user.id} - {'liked' if self.is_like else 'disliked'} - Task {self.task.id}"

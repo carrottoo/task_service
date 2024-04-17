@@ -94,8 +94,8 @@ class TaskPropertyTests(APITestCase):
         response = self.client.post(create_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('task' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['task']['message'], 
+        self.assertTrue('task' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['task']['message'], 
                          'You can only link properties to your own tasks.')
 
         self.client.logout
@@ -156,8 +156,8 @@ class TaskPropertyTests(APITestCase):
         response_5 = self.client.put(update_url, data, format='json')
         self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_5.data['error_count'], 1)
-        self.assertTrue('task' in response_5.data['field_errors'].keys())
-        self.assertEqual(response_5.data['field_errors']['task']['message'], 
+        self.assertTrue('task' in response_5.data['errors'].keys())
+        self.assertEqual(response_5.data['errors']['task']['message'], 
                          'You can only relink properties to tasks you own.')
         
         # Authenticated users trying to null the the task / property
@@ -166,11 +166,11 @@ class TaskPropertyTests(APITestCase):
         response_6 = self.client.put(update_url, data, format='json')
         self.assertEqual(response_6.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_6.data['error_count'], 2)
-        self.assertTrue('task' in response_6.data['field_errors'].keys())
-        self.assertTrue('property' in response_6.data['field_errors'].keys())
-        self.assertEqual(response_6.data['field_errors']['task']['message'], 
+        self.assertTrue('task' in response_6.data['errors'].keys())
+        self.assertTrue('property' in response_6.data['errors'].keys())
+        self.assertEqual(response_6.data['errors']['task']['message'], 
                          'This field may not be null.')
-        self.assertEqual(response_6.data['field_errors']['property']['message'], 
+        self.assertEqual(response_6.data['errors']['property']['message'], 
                          'This field may not be null.')
 
     def test_task_property_partial_update(self):
@@ -219,8 +219,8 @@ class TaskPropertyTests(APITestCase):
         response_5 = self.client.patch(update_url, data_2, format='json')
         self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_5.data['error_count'], 1)
-        self.assertTrue('task' in response_5.data['field_errors'].keys())
-        self.assertEqual(response_5.data['field_errors']['task']['message'], 
+        self.assertTrue('task' in response_5.data['errors'].keys())
+        self.assertEqual(response_5.data['errors']['task']['message'], 
                          'You can only relink properties to tasks you own.')
         
         # Authenticated users trying to null the the task / property

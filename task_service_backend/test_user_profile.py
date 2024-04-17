@@ -66,8 +66,8 @@ class UserProfileTests(APITestCase):
         response = self.client.post(create_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('user' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['user']['message'], 
+        self.assertTrue('user' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['user']['message'], 
                          'You can only set profile for yourself.')
 
         self.client.logout()
@@ -87,8 +87,8 @@ class UserProfileTests(APITestCase):
         response = self.client.post(create_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('user' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['user']['message'], 
+        self.assertTrue('user' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['user']['message'], 
                          'user profile with this user already exists.')
     
     def test_user_profile_update(self):

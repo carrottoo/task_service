@@ -73,16 +73,16 @@ class TaskService:
     we take valid task and user instance as input parameters
     """
 
-    def __init__(self, Task: type[models.Model]):
-        """
-        Initializes the task service
+    # def __init__(self, Task: type[models.Model]):
+        # """
+        # Initializes the task service
 
-        :param Task: Task model 
-        """
+        # :param Task: Task model 
+        # """
 
         # a set of task ids of all active tasks in the database
-        self.all_active_task_ids = set(Task.objects.all().filter(
-            is_active=True).values_list('id', flat=True)) 
+        # self.all_active_task_ids = set(Task.objects.all().filter(
+        #     is_active=True).values_list('id', flat=True)) 
         
     @staticmethod
     def get_user_interested_properties(user: User) -> set:
@@ -117,9 +117,9 @@ class TaskService:
 
         return: a set of task ids that the given user has completed 
         """
-
+           
         completed_tasks = set(user.assigned_tasks.filter(
-            status=Task.Status.DONE).values_list('task_id', flat=True))
+            status=Task.Status.DONE).values_list('id', flat=True))
         return completed_tasks
     
     @staticmethod
@@ -181,6 +181,8 @@ class TaskService:
             score = len(common_properties) / len(task_properties)
         else:
             score = 0
+        
+        return score
     
     def get_history_based_score(self, user: User, task: Task) -> float:
         """
@@ -241,17 +243,22 @@ class TaskService:
         return: a list of ranked tasks for the given user
         """
 
+        # all_active_task_ids = set(Task.objects.all().filter(
+        #     is_active=True).values_list('id', flat=True)) 
+        
+        all_active_task = set(Task.objects.all().filter(is_active=True))
+
         interest_scores = {}
         history_scores = {}
         behavior_scores = {}
         final_scores = {}
 
-        for task_id in self.all_active_task_ids:
-            task = get_object_or_404(Task, pk=task_id)
+        for task in all_active_task:
+            # task = get_object_or_404(Task, pk=task_id)
 
-            interest_scores[task_id] = self.get_interest_based_score(user, task)
-            history_scores[task_id] = self.get_history_based_score(user, task)
-            behavior_scores[task_id] = self.get_behavior_based_score(user, task)
+            interest_scores[task] = self.get_interest_based_score(user, task)
+            history_scores[task] = self.get_history_based_score(user, task)
+            behavior_scores[task] = self.get_behavior_based_score(user, task)
 
         # Normalize the scores
         interest_score_max = max(interest_scores.values(), default=0)
@@ -260,23 +267,23 @@ class TaskService:
             }
         
         history_score_values = history_scores.values()
-        history_score_mean = np.mean(history_score_values)
-        history_score_std = np.std(history_score_values)
+        history_score_mean = np.mean(list(history_score_values))
+        history_score_std = np.std(list(history_score_values))
         normalized_history_score = {
             task_id: [(score - history_score_mean)] / history_score_std if history_score_std else 0 for task_id, score in history_scores.items() 
         }
 
         behavior_score_values = behavior_scores.values()
-        behavior_score_mean = np.mean(behavior_score_values)
-        behavior_score_std = np.std(behavior_score_values)
+        behavior_score_mean = np.mean(list(behavior_score_values))
+        behavior_score_std = np.std(list(behavior_score_values))
         normalized_behavior_score = {
             task_id: [(score - behavior_score_mean)] / behavior_score_std if behavior_score_std else 0 for task_id, score in history_scores.items() 
         }
 
         # sum up scores
-        for task_id in self.all_active_task_ids:
-            final_scores[task_id] = normalized_interest_scores[task_id] + normalized_history_score[task_id] + normalized_behavior_score[task_id]
-        
+        for task in all_active_task:
+            final_scores[task] = normalized_interest_scores[task] + normalized_history_score[task] + normalized_behavior_score[task]
+      
         # sort in descending order to get the rank
         task_ranking = sorted(final_scores, key=final_scores.get, reverse=True)
 

@@ -97,8 +97,8 @@ class UserBehaviorsTests(APITestCase):
         response = self.client.post(create_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('user' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['user']['message'], 
+        self.assertTrue('user' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['user']['message'], 
                          'You can only set a behavior for yourself.')
 
         # If setting behavior for him/herself -> should pass
@@ -117,6 +117,35 @@ class UserBehaviorsTests(APITestCase):
         response = self.client.post(create_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
+        self.assertEqual(response.data['errors']['non_field_errors']['message'], 
+                         'The fields user, task must make a unique set.')
+
+        data = {}
+        response = self.client.post(create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error_count'], 2)
+        for field in ['user', 'task']:
+            self.assertEqual(response.data['errors'][field]['message'],
+                             "This field is required.")
+
+        data = {
+            'user': self.user_employee_2.id,
+        }
+        response = self.client.post(create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error_count'], 1)
+        self.assertEqual(response.data['errors']['task']['message'],
+                             "This field is required.")
+        
+        data = {
+            'user': self.user_employee_2.id,
+            'task': 'wrong data type'
+        }
+        response = self.client.post(create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error_count'], 1)
+        self.assertEqual(response.data['errors']['task']['message'],
+                             "Incorrect type. Expected pk value, received str.")
     
     def test_user_behavior_update(self):
         """
@@ -165,15 +194,26 @@ class UserBehaviorsTests(APITestCase):
         data['task'] = self.test_task_1.id
         response = self.client.put(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['errors']['non_field_errors']['message'], 
+                         'The fields user, task must make a unique set.')
 
         # Authenticated user and also the user him/herself, however the user wants to link the property to another user -> should fail
         data['user'] = self.user_employee_2.id
         response = self.client.put(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('user' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['user']['message'], 
+        self.assertTrue('user' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['user']['message'], 
                          'You cannot remap your behavior to someone else.')
+        
+        data = {
+            'user': self.user_employee_1.id,
+            'task': None,
+        }
+        response = self.client.put(update_url, data, format='json') 
+        self.assertEqual(response.data['error_count'], 1)
+        self.assertEqual(response.data['errors']['task']['message'], 
+                         'This field may not be null.')
 
     def test_user_behavior_partial_update(self):
         """
@@ -218,8 +258,8 @@ class UserBehaviorsTests(APITestCase):
         response = self.client.patch(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('user' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['user']['message'], 
+        self.assertTrue('user' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['user']['message'], 
                          'You cannot remap your behavior to someone else.')
     
     def test_user_behavior_deletion(self):

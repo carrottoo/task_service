@@ -198,8 +198,8 @@ class TaskTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 3)
         for field in data.keys():
-            self.assertTrue(field in response.data['field_errors'].keys())
-            self.assertEqual(response.data['field_errors'][field]['message'],
+            self.assertTrue(field in response.data['errors'].keys())
+            self.assertEqual(response.data['errors'][field]['message'],
                             'Only the owner of the task can change this field.')
 
     def test_task_update_unauthenticated(self):
@@ -262,8 +262,8 @@ class TaskTests(APITestCase):
         # We check if he/she edit certain fields in validtion based on their role,  so return bad request when it is failed 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('name' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['name']['message'], 
+        self.assertTrue('name' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['name']['message'], 
                          'Only the owner of the task can change this field.')
 
     def test_task_patch_unauthenticated(self):
@@ -370,8 +370,8 @@ class TaskTests(APITestCase):
         # to modify. User cannot assign the tasks to someone else except for themselves
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error_count'], 1)
-        self.assertTrue('assignee' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['assignee']['message'], 
+        self.assertTrue('assignee' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['assignee']['message'], 
                          'You can only assign the task to yourself.')
 
     def test_task_assignation_auth_employer(self):
@@ -388,8 +388,8 @@ class TaskTests(APITestCase):
 
         response = self.client.patch(update_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue('assignee' in response.data['field_errors'].keys())
-        self.assertEqual(response.data['field_errors']['assignee']['message'], 
+        self.assertTrue('assignee' in response.data['errors'].keys())
+        self.assertEqual(response.data['errors']['assignee']['message'], 
                          'You do not have the permission to change the assignee.')
 
     def test_task_assignation_unauthenticated(self):
@@ -428,8 +428,8 @@ class TaskTests(APITestCase):
         response_2 = self.client.patch(update_url, data_2, format='json')
         self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_2.data['error_count'], 1)
-        self.assertTrue('assignee' in response_2.data['field_errors'].keys())
-        self.assertEqual(response_2.data['field_errors']['assignee']['message'], 
+        self.assertTrue('assignee' in response_2.data['errors'].keys())
+        self.assertEqual(response_2.data['errors']['assignee']['message'], 
                          'You can only unassign yourself from the task.')
 
         data_3 = {
@@ -473,8 +473,8 @@ class TaskTests(APITestCase):
         response_2 = self.client.patch(update_url, data_submit, format='json')
         self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_2.data['error_count'], 1)
-        self.assertTrue('is_submitted' in response_2.data['field_errors'].keys())
-        self.assertEqual(response_2.data['field_errors']['is_submitted']['message'], 
+        self.assertTrue('is_submitted' in response_2.data['errors'].keys())
+        self.assertEqual(response_2.data['errors']['is_submitted']['message'], 
                          'Only the task assignee can change this field.')
 
         # Log out
@@ -528,8 +528,8 @@ class TaskTests(APITestCase):
         response_3 = self.client.patch(update_url, data_approve, format='json')
         self.assertEqual(response_3.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response_3.data['error_count'], 1)
-        self.assertTrue('is_approved' in response_3.data['field_errors'].keys())
-        self.assertEqual(response_3.data['field_errors']['is_approved']['message'], 
+        self.assertTrue('is_approved' in response_3.data['errors'].keys())
+        self.assertEqual(response_3.data['errors']['is_approved']['message'], 
                          "You don't have the permission to change this field.")
 
         self.client.logout()
@@ -548,7 +548,53 @@ class TaskTests(APITestCase):
         self.assertEqual(response_5.status_code, status.HTTP_400_BAD_REQUEST)
          
     def test_task_recommendation(self):
-        pass
+        """
+        """
+
+        # get_url = f"{reverse('task-recommend')}?user_id={self.user_employee_1.id}"
+        get_url = reverse('task-recommend')
+
+        self.test_task_1.is_active=True
+        self.test_task_2.is_active=True
+
+        self.test_task_3 = Task.objects.create(name='plant some flowers', description='plant some roses in my garden', 
+                                               owner=self.user_employer_2)
+        self.test_task_3.is_active=True
+
+        self.property_1 = Property.objects.create(name='clean', creator=self.user_employer_1)
+        self.property_2 = Property.objects.create(name='code', creator=self.user_employee_1)
+        self.property_3 = Property.objects.create(name='garden', creator=self.user_employer_2)
+
+        self.task_property_1 = TaskProperty.objects.create(task=self.test_task_1, property=self.property_1)
+        self.task_property_2 = TaskProperty.objects.create(task=self.test_task_2, property=self.property_2)
+        self.task_property_3 = TaskProperty.objects.create(task=self.test_task_3, property=self.property_3)
+
+        self.user_property_1 = UserProperty.objects.create(user=self.user_employee_1, property=self.property_2)
+        self.user_property_2 = UserProperty.objects.create(user=self.user_employee_2, property=self.property_1)
+        self.user_property_3 = UserProperty.objects.create(user=self.user_employee_2, property=self.property_3)
+
+        self.user_behavior_1 = UserBehavior.objects.create(user=self.user_employee_1, task=self.test_task_1)
+        self.user_behavior_2 = UserBehavior.objects.create(user=self.user_employee_1, task=self.test_task_3, is_like=False)
+        self.user_behavior_3 = UserBehavior.objects.create(user=self.user_employee_2, task=self.test_task_1)
+        self.user_behavior_4 = UserBehavior.objects.create(user=self.user_employee_2, task=self.test_task_2)
+
+        # Unauthenticated user -> should fail
+        response = self.client.get(get_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Authenticated user but wrong profile -> should fail
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+        response = self.client.get(get_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], 
+                         'You do not have permission to perform this action.')
+
+        self.client.logout
+
+        # Authenticated user with employee profile, trying to get recommendations for themselves -> should pass
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.get(get_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 

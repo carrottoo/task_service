@@ -4,10 +4,15 @@ from django.contrib.auth.models import User
 from rest_framework.exceptions import PermissionDenied
 
 
-'''
+"""
+    Data fields' non-nulless, data type are checked (error raises and return 'bad request' etc if there is an error) before data 
+    goes to serializer --> in serializer we validation several customized restrictions (error raises if there is any) -> check in-
+    tegrity in data (e.g. duplicated records if uniqueness is required) when saving the instance after performing the action in view 
+    (raise error if there is any)
+
     Field restriction -> validation in serialziers
     Endpoint restriction (whether you can access it or not) -> view + permissions
-'''
+"""
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -127,6 +132,11 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
+class TaskSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ['id', 'name']  # Include only the ID and name fields
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -263,14 +273,16 @@ class UserBehaviorSerializer(serializers.ModelSerializer):
 
         request = self.context.get('request')
         errors = {}
+        original_user = self.instance.user if self.instance else None
+        new_user = data.get('user', original_user)
 
         if request and request.method == 'POST':
             request_user = self.context['request'].user
-            if data['user'] and data['user'] != request_user:
+
+            if new_user and new_user!= request_user:
                 errors["user"] = "You can only set a behavior for yourself."
-               
+           
         elif request.method in ['PUT', 'PATCH']:
-            new_user = data.get('user', None)
             if new_user and new_user!= self.instance.user:
                 errors["user"] = "You cannot remap your behavior to someone else."
         

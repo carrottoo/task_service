@@ -14,6 +14,13 @@ from django.utils import timezone
 from django.db import IntegrityError
 
 
+"""
+    Data fields' non-nulless, data type are checked (error raises and return 'bad request' etc if there is an error) before data 
+    goes to serializer --> in serializer we validation several customized restrictions (error raises if there is any) -> check in-
+    tegrity in data (e.g. duplicated records if uniqueness is required) when saving the instance after performing the action in view 
+    (raise error if there is any)
+"""
+
 
 class CustomPageNumberPagination(PageNumberPagination):
     """
@@ -41,7 +48,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    service = TaskService(Task)
+    service = TaskService()
     paginator = CustomPageNumberPagination()
 
     def get_permissions(self):
@@ -55,6 +62,8 @@ class TaskViewSet(viewsets.ModelViewSet):
             permission_classes = [IsTaskOwnerOrReadOnly]
         elif self.action in ['list', 'retrieve']:
             permission_classes = [AllowAny]
+        elif self.action == 'recommend':
+            permission_classes =[IsEmployee]
         else:
             permission_classes = [IsAuthenticated]
         
@@ -75,23 +84,24 @@ class TaskViewSet(viewsets.ModelViewSet):
     #     Custom logic after saving (e.g., sending notifications, audit logging)
 
         
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def recommendations(self, request):
+    @action(detail=False, methods=['get'], url_path='recommend', url_name='recommend')
+    def recommend(self, request):
         """
         Task recommendation 
         """
+
         user = request.user
         ranked_tasks = self.service.get_user_task_rank(user)
         page = self.paginator.paginate_queryset(ranked_tasks, request, view=self)
 
         if page is not None:
             # Serialize the page of tasks
-            serializer = TaskSerializer(page, many=True, context={'request': request})
+            serializer = TaskSimpleSerializer(page, many=True, context={'request': request})
             # Return the paginated response
             return self.paginator.get_paginated_response(serializer.data)
 
         # Fallback response if pagination is not applicable
-        serializer = TaskSerializer(ranked_tasks, many=True, context={'request': request})
+        serializer = TaskSimpleSerializer(ranked_tasks, many=True, context={'request': request})
         return Response(serializer.data)
     
 

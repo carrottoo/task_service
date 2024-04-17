@@ -13,19 +13,20 @@ def custom_exception_handler(exc, context):
             # Handle ValidationError specifically
             if isinstance(response.data, dict):
                 error_count = len(response.data.keys())
-                field_errors = {}
+                errors = {}
 
                 for field, value in response.data.items():
-                    if isinstance(value, list) and value:
-                        field_errors[field] = {
+                    if isinstance(value, list) and value:    
+                        errors[field] = {
                             'message': str(value[0]),
                             'code': value[0].code if hasattr(value[0], 'code') else 'error'
                         }
 
                 response.data = {
-                    "field_errors": field_errors,
+                    "errors": errors,
                     "error_count": error_count
                 }
+                
         else:
             error_count = len(response.data.keys())
 
