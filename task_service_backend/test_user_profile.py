@@ -29,8 +29,15 @@ class UserProfileTests(APITestCase):
 
         list_url = reverse('user_profile-list')
         response = self.client.get(list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 0)  # for non superusers, they cannot see other users' profiles
+        self.assertEqual(response.data['results'], [])
+
+        self.client.login(username=self.user_1.username, password='mysecretpassword')
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.profile_1.id)
     
     def test_detail_retrieval_by_id(self):
         """
@@ -39,11 +46,21 @@ class UserProfileTests(APITestCase):
         id = self.profile_1.id
         detail_url = reverse('user_profile-detail', kwargs={'pk': id})
         response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], "You do not have access to other user's profile")
 
+        self.client.login(username=self.user_1.username, password='mysecretpassword')
+        response = self.client.get(detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], id)
         self.assertEqual(response.data['user'], self.user_1.id)
         self.assertEqual(response.data['is_employer'], True)
+
+        self.client.logout()
+        self.client.login(username = self.user_2, password='password1234')
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # A normal user cannot access profiles of other users
+        self.assertEqual(response.data['detail']['message'], "You do not have access to other user's profile")
 
     def test_user_profile_creation(self):
         """

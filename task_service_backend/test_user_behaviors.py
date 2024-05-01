@@ -49,8 +49,15 @@ class UserBehaviorsTests(APITestCase):
 
         list_url = reverse('user_behavior-list')
         response = self.client.get(list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 0)  # for non superusers, they cannot see the properties linked to themselves
+        self.assertEqual(response.data['results'], [])
+
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.behavior_1.id)
     
     def test_detail_retrieval_by_id(self):
         """
@@ -59,14 +66,23 @@ class UserBehaviorsTests(APITestCase):
         
         detail_url = reverse('user_behavior-detail', kwargs={'pk': self.behavior_1.id})
         response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], "You do not have access to the requested information")
 
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.get(detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], self.behavior_1.id)
         self.assertEqual(response.data['user'], self.user_employee_1.id)
         self.assertEqual(response.data['task'], self.test_task_1.id)
         self.assertEqual(response.data['is_like'], True)
-    
 
+        self.client.logout()
+        self.client.login(username=self.user_employee_2.username, password='passcode1234')
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], "You do not have access to the requested information")
+    
     def test_user_behavior_creation(self):
         """
         Test POST request to create a new user behavior, you can only create behaviors for yourself and you can only have one 

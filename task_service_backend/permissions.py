@@ -116,3 +116,25 @@ class IsPropertyLinkedTaskOwnerOrReadOnly(permissions.BasePermission):
         
         # mapped_task = get_object_or_404(Task, pk=obj.task)
         return obj.task.owner == request.user
+    
+    
+class IsSuperuser(permissions.BasePermission):
+    """
+    Permission to only allow superusers to access a resource.
+    """
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_superuser
+
+
+class IsUserHimOrHerself(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        return obj == request.user
+    

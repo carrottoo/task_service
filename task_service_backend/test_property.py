@@ -39,8 +39,15 @@ class PropertyTests(APITestCase):
         
         list_url = reverse('property-list')
         response = self.client.get(list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'], [])
+
+        self.client.login(username = self.user_employer.username, password='mysecretpassword')
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.property_1.id)
+        self.assertEqual(response.data['results'][0]['creator'], self.user_employer.id)
 
     def test_detail_retrieval_by_id(self):
         """
@@ -50,10 +57,19 @@ class PropertyTests(APITestCase):
         property_id = self.property_1.pk
         detail_url = reverse('property-detail', kwargs={'pk': property_id})
         response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], "You do not have access to this property's information")
 
+        self.client.login(username = self.user_employer.username, password='mysecretpassword')
+        response = self.client.get(detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], property_id)
-        self.assertEqual(response.data['name'], 'cleaning')
+        self.assertEqual(response.data['creator'], self.user_employer.id)
+
+        detail_url = reverse('property-detail', kwargs={'pk': self.property_2.pk})
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # A normal user cannot access details of properties created by other users
+        self.assertEqual(response.data['detail']['message'], "You do not have access to this property's information")
 
     def test_property_creation(self):
         """

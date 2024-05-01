@@ -23,7 +23,7 @@ class UserService:
         try:
             user = User.objects.get(username__iexact=username) 
         except User.DoesNotExist:
-            return None, "Username does not exist"
+            return None, "Username does not exist."
 
         user = authenticate(username=username, password=password)
         if user is not None:
@@ -37,7 +37,7 @@ class UserService:
             }, None
         else:
             # Authentication failed due to incorrect password
-            return None, "Invalid credentials"
+            return None, "Incorrect password."
             
     @staticmethod
     def authenticate_by_email(email: str, password: str) -> tuple:
@@ -49,7 +49,7 @@ class UserService:
         try:
             user = User.objects.get(email=email) 
         except User.DoesNotExist:
-            return None, "Email does not exist"
+            return None, "Email does not exist."
 
         user = authenticate(username=user.username, password=password)
         if user is not None:
@@ -62,7 +62,7 @@ class UserService:
                 "email": user.email
             }, None
         else:
-            return None, "Invalid credentials"
+            return None, "Incorrect password."
 
 
 class TaskService:

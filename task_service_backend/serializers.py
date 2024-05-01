@@ -1,7 +1,11 @@
 from rest_framework import serializers
+from .password import CustomPasswordValidator
 from task_service_backend.models import *
 from django.contrib.auth.models import User
 from rest_framework.exceptions import PermissionDenied
+from django.utils import timezone
+from django.utils.translation import gettext as _
+from collections import defaultdict
 
 
 """
@@ -53,6 +57,11 @@ class TaskSerializer(serializers.ModelSerializer):
             user_profile = UserProfile.objects.get(user=user)
             task = self.instance
             errors = {}
+
+            # ensure that read-only fields cannot be modified by the users
+            for field in ['status', 'owner', 'is_active', 'created_on', 'updated_on', 'submitted_on', 'approved_on']:
+                if field in data:
+                    errors[field] = "Modification to this field is not allowed."
 
             for field in ['name', 'description', 'output']:
                 if field in data:
@@ -138,16 +147,20 @@ class TaskSimpleSerializer(serializers.ModelSerializer):
         model = Task
         fields = ['id', 'name']  # Include only the ID and name fields
 
+
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'is_superuser', 'is_active', 'last_login', 'date_joined']
         #  username is unique and required in the default model
         extra_kwargs = {
+            'username': {'required': True, 'allow_blank': False},
             'password': {'write_only': True,'required': True, 'min_length': 8},
             'email': {'required': True, 'allow_blank': False}
         }
-
+        
+ 
     def create(self, request):
         '''
         Create a user with password
@@ -162,7 +175,67 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(request['password'])
         user.save()
         return user
+    
+    def update(self, instance, validated_data):
+        """
+        """
+    
+        for attr, value in validated_data.items():
+            if attr == 'password':
+                instance.set_password(value)
+            else:
+                setattr(instance, attr, value)
+        
+        instance.save()
+        return instance
 
+    def validate(self, data):
+        """
+        Customized validation logics for default django user model
+
+        Required fields by django default: username, email, password
+        Length limit by django default: username (150 char), 
+        """
+
+        request = self.context.get('request')
+        errors = defaultdict(list)
+
+        if request and request.method in ['POST', 'PUT', 'PATCH']:
+
+            email = data.get('email')
+            if email and User.objects.filter(email=email).exists():
+                errors['email'].append('A user with the provided email already exists.')
+
+            user_password = data.get('password', None)
+       
+            if user_password:
+
+                if not any(char.isdigit() for char in user_password):
+                    errors['password'].append('The password must contain at least one digit')
+                
+
+                if not any(char.isalpha() for char in user_password):
+                    errors['password'].append('The password must contain at least one letter.')
+
+                if not any(char in '!@#$%^&*()_+-=[]{}|;:,.<>?/`~' for char in user_password):
+                    errors['password'].append('The password must contain at least one special character: !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~')
+            
+            # superuser can be created through "python manage.py createsuperuser"  but not through the api endpoint
+            for field in ['is_staff', 'is_superuser']:
+                if field in data:
+                    if request.method == 'POST':
+                        errors[field].append('Creation of staff and superuser is not allowed.')
+                    else:
+                        errors[field].append('Modification of the state of staff and superuser is not allowed')
+        
+
+                
+        if errors:
+            raise ValidationError(errors) 
+        
+        return data
+
+        
     
 class PropertySerializer(serializers.ModelSerializer):
     class Meta:
@@ -175,6 +248,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
 
 class TaskPropertySerializer(serializers.ModelSerializer):
+
     class Meta:
         model = TaskProperty
         fields = ['id', 'task', 'property']

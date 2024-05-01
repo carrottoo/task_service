@@ -55,8 +55,15 @@ class TaskPropertyTests(APITestCase):
 
         list_url = reverse('task_property-list')
         response = self.client.get(list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 0)  # for non superusers, they cannot see the properties linked to tasks that aren't owned by them 
+        self.assertEqual(response.data['results'], [])
+        
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.property_1.id)
 
     def test_detail_retrieval_by_id(self):
         """
@@ -66,11 +73,21 @@ class TaskPropertyTests(APITestCase):
         task_property_id = self.task_property_1.pk
         detail_url = reverse('task_property-detail', kwargs={'pk': task_property_id})
         response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], "You do not have access to the requested information")
 
+        self.client.login(username = self.user_employer_1.username, password='mysecretpassword')
+        response = self.client.get(detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], task_property_id)
         self.assertEqual(response.data['task'], self.test_task_1.id)
         self.assertEqual(response.data['property'], self.property_1.id)
+
+        self.client.logout()
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # A normal user cannot access details of properties likned to tasks owned by others
+        self.assertEqual(response.data['detail']['message'], "You do not have access to the requested information")
 
     def test_task_property_creation(self):
         """

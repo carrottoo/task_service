@@ -48,15 +48,26 @@ class TaskTests(APITestCase):
 
     def test_retrieving_list_of_tasks(self):
         """
-        Test GET request for retrieving list of tasks, no authentication is required 
+        Test GET request for retrieving list of tasks
         """
 
         # list_url = f"{reverse('task-list')}?page=1&page_size=10"
         list_url = reverse('task-list')
         response = self.client.get(list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['count'], 2) # in setup, we created two task instance samples
+        self.assertEqual(response.data['count'], 0)
+
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['owner'], self.user_employer_1.id)
+
+        self.client.logout()
+
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.get(list_url)
+        self.assertEqual(response.data['count'], 2) # employee users can see all unassigned tasks and tasks assigned to themselves
         self.assertEqual(len(response.data['results']), 2)
     
     def test_retrieving_task_by_id(self):
@@ -67,10 +78,24 @@ class TaskTests(APITestCase):
         task_id = self.test_task_1.pk
         detail_url = reverse('task-detail', kwargs={'pk': task_id})
         response = self.client.get(detail_url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['detail']['message'], "You do not have access to the requested task's information")
 
-        # Assert the response data matches the task details
+        self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], task_id)
+
+        self.client.logout()
+        self.client.login(username=self.user_employer_2.username, password='password1234')
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN) # You cannot retrieve a task's detailed information when you are not the task owner
+        self.assertEqual(response.data['detail']['message'], "You do not have access to the requested task's information")
+
+        self.client.logout
+        self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], task_id)
         self.assertEqual(response.data['name'], self.test_task_1.name)
         self.assertEqual(response.data['description'], self.test_task_1.description)

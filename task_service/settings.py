@@ -11,6 +11,27 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+import io
+
+import environ
+from google.cloud import secretmanager
+
+env = environ.Env(DEBUG=(bool, False))
+
+if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
+
+    # Pull secrets from Secret Manager
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+    client = secretmanager.SecretManagerServiceClient()
+    settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
+    name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
+    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
+
+    env.read_env(io.StringIO(payload))
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +41,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j%u3q86eb!=t24x*=#c0fyt5472ra^uw9-)0hi7x6vcs2gaild'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-j%u3q86eb!=t24x*=#c0fyt5472ra^uw9-)0hi7x6vcs2gaild')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 ALLOWED_HOSTS = []
 
@@ -78,11 +99,12 @@ WSGI_APPLICATION = 'task_service.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    # Read the database from the enviroment variable, or use the default SQLite
+    'default': env.db(default=f"sqlite://{BASE_DIR / 'db.sqlite3'}")
 }
+if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
+    DATABASES["default"]["HOST"] = "127.0.0.1"
+    DATABASES["default"]["PORT"] = 5432
 
 
 # Password validation
@@ -130,3 +152,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'task_service_backend.exceptions.custom_exception_handler',
 }
+
+SWAGGER_SETTINGS = {
+   'USE_SESSION_AUTH': False
+}
+
+CSRF_COOKIE_SECURE = True
