@@ -8,6 +8,9 @@ Newly created tasks will be put to task pool and will assign weights representin
 
 ### Development 
 
+### Deployment
+On Google Cloud 
+
 #### To install all dependecies 
 ```
 poetry install
