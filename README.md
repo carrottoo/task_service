@@ -18,7 +18,13 @@ poetry install
 
 #### To run locally in dev mode
 ```bash
+export DJANGO_DEBUG=true
 python manage.py runserver
+```
+
+#### To generate the static files
+```bash
+python manage.py collectstatic
 ```
 
 #### To run tests

@@ -169,6 +169,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Customized error handler, reformatting the validation error 
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'task_service_backend.exceptions.custom_exception_handler',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+   ),
 }
 
 SWAGGER_SETTINGS = {

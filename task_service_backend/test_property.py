@@ -83,7 +83,7 @@ class PropertyTests(APITestCase):
         }
 
         response = self.client.post(create_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         self.client.login(username=self.user_employer.username, password='mysecretpassword')
         response = self.client.post(create_url, data, format='json')

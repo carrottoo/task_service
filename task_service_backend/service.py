@@ -2,6 +2,7 @@ from .models import *
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import update_last_login
 from rest_framework.authtoken.models import Token
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -26,8 +27,9 @@ class UserService:
             return None, "Username does not exist."
 
         user = authenticate(username=username, password=password)
+        
         if user is not None:
-            # Authentication successful
+            update_last_login(None, user)
             token, _ = Token.objects.get_or_create(user=user)
             return {
                 "token": token.key,
@@ -52,8 +54,9 @@ class UserService:
             return None, "Email does not exist."
 
         user = authenticate(username=user.username, password=password)
+
         if user is not None:
-            # Authentication successful
+            update_last_login(None, user)
             token, _ = Token.objects.get_or_create(user=user)
             return {
                 "token": token.key,

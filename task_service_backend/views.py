@@ -428,7 +428,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        For non superuser, he/she can only retrieve his/her own profile 
+        For non superuser, he/she can only retrieve his/her own profile by id
         """
 
         instance = self.get_object()

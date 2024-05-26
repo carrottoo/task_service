@@ -161,6 +161,19 @@ class UserTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['errors']['is_staff']['message'],'Creation of staff and superuser is not allowed.')
 
+        data = {
+            'first_name': 'Lissa',
+            'last_name': 'Mark',
+            'username': 'newbee',
+            'email': 'newbee@gmail.com',
+            'password': 'abcd1234$'
+        }
+        response = self.client.post(create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        newly_created_user = User.objects.latest('id')
+        self.assertEqual(newly_created_user.first_name, 'Lissa')
+        self.assertEqual(newly_created_user.last_name, 'Mark') 
+
     def test_user_update(self):
         """
         """
@@ -176,7 +189,7 @@ class UserTests(APITestCase):
         }
 
         response = self.client.put(put_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data['detail']['code'], 'not_authenticated')
         
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
@@ -212,7 +225,7 @@ class UserTests(APITestCase):
         }
 
         response = self.client.patch(patch_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data['detail']['code'], 'not_authenticated')
         
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
@@ -239,7 +252,7 @@ class UserTests(APITestCase):
         delete_url = reverse('user-detail', kwargs={'pk': self.user_employer_1.id})
 
         response = self.client.delete(delete_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data['detail']['code'], 'not_authenticated')
 
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')

@@ -21,11 +21,15 @@ from collections import defaultdict
 
 class TaskSerializer(serializers.ModelSerializer):
 
+    owner_name = serializers.SerializerMethodField(source=None)  # Add source=None
+    assignee_name = serializers.SerializerMethodField(source=None)  # Add source=None
+
+
     class Meta:
         model = Task
-        fields = ['id', 'name', 'description', 'output', 'status', 'assignee', 
-                  'owner',  'is_submitted', 'is_approved', 'is_active', 
-                  'created_on', 'updated_on', 'submitted_on', 'approved_on']
+        fields = ['id', 'name', 'description', 'output', 'status', 'assignee',
+                  'owner', 'is_submitted', 'is_approved', 'is_active', 
+                  'created_on', 'updated_on', 'submitted_on', 'approved_on', 'owner_name', 'assignee_name']
         
         extra_kwargs = {
             'name': {'required': True, 'allow_blank': False, 'max_length': 80},
@@ -38,6 +42,12 @@ class TaskSerializer(serializers.ModelSerializer):
             'submitted_on': {'read_only': True},
             'approved_on': {'read_only': True}
         }
+    
+    def get_owner_name(self, obj):
+        return obj.owner.username if obj.owner else None  # Handle potential null owner
+
+    def get_assignee_name(self, obj):
+        return obj.assignee.username if obj.assignee else None  # Handle potential null assignee
 
     def validate(self, data):
         '''

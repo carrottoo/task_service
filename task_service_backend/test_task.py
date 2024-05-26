@@ -48,7 +48,7 @@ class TaskTests(APITestCase):
 
     def test_retrieving_list_of_tasks(self):
         """
-        Test GET request for retrieving list of tasks
+        Test GET request for retrieving list of tasks, a employee can access all active non-assigned tasks and tasks assigned to themselves, a employer can access tasks he has created 
         """
 
         # list_url = f"{reverse('task-list')}?page=1&page_size=10"
@@ -72,7 +72,8 @@ class TaskTests(APITestCase):
     
     def test_retrieving_task_by_id(self):
         """
-        Test GET request for retrieving the details of a task by its id, no authentication is required
+        Test GET request for retrieving the details of a task by its id,  a employee can retrieve any task that is assigned to him/her or an unasssigned active task, a employer can 
+        retrieve any task that is owned by him/he
         """
     
         task_id = self.test_task_1.pk
@@ -167,12 +168,12 @@ class TaskTests(APITestCase):
 
         # creation of a new task is forbidden without login 
         response_1 = self.client.post(create_url, data, format='json')
-        self.assertEqual(response_1.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response_1.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # creation of a new task is forbidden with failed login
         self.client.login(username=self.user_employer_1.username, password='wrongpassword') 
         response_2 = self.client.post(create_url, data, format='json')
-        self.assertEqual(response_2.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response_2.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_task_update_auth_owner(self):
         """
@@ -241,11 +242,11 @@ class TaskTests(APITestCase):
         }
 
         response_1 = self.client.put(update_url, data, format='json')
-        self.assertEqual(response_1.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response_1.status_code, status.HTTP_401_UNAUTHORIZED)
 
         self.client.login(username=self.user_employer_1.username, password='wrongpassword') 
         response_2 = self.client.put(update_url, data, format='json')
-        self.assertEqual(response_2.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response_2.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_task_patch_auth_owner(self):
         """
@@ -303,11 +304,11 @@ class TaskTests(APITestCase):
         }
 
         response_1 = self.client.patch(update_url, data, format='json')
-        self.assertEqual(response_1.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response_1.status_code, status.HTTP_401_UNAUTHORIZED)
 
         self.client.login(username=self.user_employer_1.username, password='wrongpassword') 
         response_2 = self.client.patch(update_url, data, format='json')
-        self.assertEqual(response_2.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response_2.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_task_deletion_auth_task_owner(self):
         """
@@ -343,7 +344,7 @@ class TaskTests(APITestCase):
 
         delete_url = reverse('task-detail', kwargs={'pk': self.test_task_1.id})
         response = self.client.delete(delete_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  
 
     def test_task_deletion_auth_employee(self):
         """
@@ -427,7 +428,7 @@ class TaskTests(APITestCase):
         }
 
         response = self.client.patch(update_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_task_dismission(self):
         """
@@ -605,7 +606,7 @@ class TaskTests(APITestCase):
 
         # Unauthenticated user -> should fail
         response = self.client.get(get_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Authenticated user but wrong profile -> should fail
         self.client.login(username=self.user_employer_1.username, password='mysecretpassword')

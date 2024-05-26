@@ -104,7 +104,7 @@ class TaskPropertyTests(APITestCase):
 
         # Without login (unauthenticated users)-> should fail
         response = self.client.post(create_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Authenticated user but not the task owner -> should fail
         self.client.login(username=self.user_employer_1.username, password='mysecretpassword')
@@ -143,7 +143,7 @@ class TaskPropertyTests(APITestCase):
 
         # Unauthenticated users -> should fail
         response = self.client.put(update_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Authenticated users but not the owner of the task, trying to link the task to another property -> should fail
         self.client.login(username=self.user_employer_2.username, password='password1234')
@@ -207,7 +207,7 @@ class TaskPropertyTests(APITestCase):
 
         # Unauthenticated users -> should fail
         response = self.client.patch(update_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Authenticated users but not the owner of the task, trying to link the task to another property -> should fail
         self.client.login(username=self.user_employer_2.username, password='password1234')
@@ -257,7 +257,7 @@ class TaskPropertyTests(APITestCase):
         
         # Unauthenticated users -> should fail
         response = self.client.delete(delete_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Authenticated users but not the owner of task -> should fail
         self.client.login(username=self.user_employer_2.username, password='password1234')

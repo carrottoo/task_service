@@ -76,7 +76,7 @@ class UserProfileTests(APITestCase):
 
         # Without login (unauthenticated users)-> should fail
         response = self.client.post(create_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Authenticated user trying to set the profile for another user -> should fail
         self.client.login(username=self.user_1.username, password='mysecretpassword')
