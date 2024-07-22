@@ -241,12 +241,23 @@ class PropertyViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         """
-        A superuser can see all the properties in DB, however a normal user can only see the propeties he/she has created
+        A superuser and a user with employee profie can see all the properties in DB, however a normal user with employer profile or no profile set
+        can only see the propeties he/she has created
         """
         if request.user.is_superuser:
             queryset = Property.objects.all()
         else:
-            queryset = Property.objects.filter(creator=request.user.id)
+            if request.user.is_authenticated:
+                try:
+                    user_profile = request.user.profile
+                    if user_profile.is_employer:
+                        queryset = Property.objects.filter(creator=request.user.id)
+                    else:
+                        queryset = Property.objects.all()
+                except UserProfile.DoesNotExist:
+                    queryset = Property.objects.filter(creator=request.user.id)
+            else:
+                queryset = Property.objects.filter(creator=request.user.id)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -262,9 +273,18 @@ class PropertyViewSet(viewsets.ModelViewSet):
         """
 
         instance = self.get_object()
-        if not request.user.is_superuser and request.user != instance.creator:
-            raise PermissionDenied("You do not have access to this property's information")
         
+        if request.user.is_authenticated:
+            if not request.user.is_superuser and request.user != instance.creator:
+                try:
+                    user_profile = request.user.profile
+                    if user_profile.is_employer:
+                        raise PermissionDenied("You do not have access to this property's information")
+                except UserProfile.DoesNotExist:
+                    raise PermissionDenied("You do not have access to this property's information")
+        else:
+            raise PermissionDenied("You do not have access to this property's information")
+
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
     

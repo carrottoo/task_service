@@ -73,7 +73,7 @@ class Property(models.Model):
     A table to store the tag / property (such as cleaning, cooking, coding ...) of a task 
     """
 
-    name = models.CharField(max_length=default_name_length)
+    name = models.CharField(max_length=default_name_length, unique=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_properties')
 
     def __str__(self):
@@ -111,6 +111,11 @@ class UserProperty(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name = 'user_properties')
     property = models.ForeignKey(Property, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'property'], name='unique_user_property')
+        ]
 
     def __str__(self):
         if self.is_interested:

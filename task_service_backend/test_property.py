@@ -71,6 +71,12 @@ class PropertyTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # A normal user cannot access details of properties created by other users
         self.assertEqual(response.data['detail']['message'], "You do not have access to this property's information")
 
+        self.client.logout()
+        self.client.login(username = self.user_employee.username, password='myuniquepassword')
+        detail_url = reverse('property-detail', kwargs={'pk': self.property_1.pk})
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_property_creation(self):
         """
         Test POST request to create a new property tag, only authenticated users are allowed
@@ -92,6 +98,10 @@ class PropertyTests(APITestCase):
 
         new_property = Property.objects.latest('id')
         self.assertEqual(new_property.name, 'gardening')
+
+        # you cannot create two properties with the same name
+        response = self.client.post(create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_property_update(self):
         """

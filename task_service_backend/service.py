@@ -249,7 +249,7 @@ class TaskService:
         # all_active_task_ids = set(Task.objects.all().filter(
         #     is_active=True).values_list('id', flat=True)) 
         
-        all_active_task = set(Task.objects.all().filter(is_active=True))
+        all_active_task = set(Task.objects.all().filter(is_active=True, assignee=None))
 
         interest_scores = {}
         history_scores = {}

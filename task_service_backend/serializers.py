@@ -138,10 +138,12 @@ class TaskSerializer(serializers.ModelSerializer):
         
             elif attr == 'is_submitted' and value:
                 instance.status = Task.Status.IN_REVIEW
+                instance.is_submitted = value
                 instance.submitted_on = timezone.now()
 
             elif attr == 'is_approved' and value:
                 instance.status = Task.Status.DONE
+                instance.is_approved = value
                 instance.approved_on = timezone.now()
                 instance.is_active = False
 

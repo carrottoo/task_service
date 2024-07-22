@@ -117,6 +117,10 @@ class UserPropertyTests(APITestCase):
         self.assertEqual(new_user_property.user, self.user_employee_1)
         self.assertEqual(new_user_property.property, self.property_2)
 
+        # Duplicated user-property is not allowed
+        response = self.client.post(create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
         # Authenticated user and with profile of employee, however the user is trying to set property for others -> should fail
         self.client.login(username=self.user_employee_1.username, password='myuniquepassword')
         data['user'] = self.user_employee_2.id
