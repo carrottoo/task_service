@@ -35,12 +35,7 @@ Staging API page
 
 Video example
 
-![demo](https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4)
-
-<!-- <video width="600" controls>
-  <source src="https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video> -->
+https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4
 
 If the video doesn't play, [click here to download](https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4).
 
