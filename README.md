@@ -36,7 +36,10 @@ Staging API page
 Video example
 
 
-https://github.com/user-attachments/assets/8d58f6b2-bba5-4917-a106-d849588a0761
+https://github.com/user-attachments/assets/49e937f2-aaad-4bea-9a63-8c74c4e8adf8
+
+
+https://github.com/user-attachments/assets/3445951f-a85d-4043-9c95-3f86e5411f80
 
 
 If the video doesn't play, [click here to download](https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4).
