@@ -19,30 +19,29 @@ Available unassigned tasks are ranked based on summed normalized scores from tas
 
 Tasks can be submitted by task assignees for review. Task owners will then have the responsibility to review and approve a task. Only task owners can deactivate / delete a task they own.
 
-
 ## Deployment
 The app is deployed on Google Cloud 
+
+## Database structure
+![Database ERD](./media/database_ERD.png)
 
 ##  Demo
 
 Staging swagger API page
 
-![Example Image](./media/task_service_api.png)
+![Task Service API (Swagger)](./media/task_service_api.png)
 
 Staging API page 
 
-![Example Image](./media/api_staging.png)
+![API Staging](./media/api_staging.png)
 
 Video example
 
-
 https://github.com/user-attachments/assets/49e937f2-aaad-4bea-9a63-8c74c4e8adf8
-
 
 https://github.com/user-attachments/assets/3445951f-a85d-4043-9c95-3f86e5411f80
 
-
-If the video doesn't play, [click here to download](https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4).
+For full demo, [click here to download](https://github.com/carrottoo/task_service/blob/main/media/demo_of_api.mp4).
 
 
 ## Development
