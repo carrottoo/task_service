@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('task_service_backend', '0007_alter_userbehavior_is_like'),
+        ("task_service_backend", "0007_alter_userbehavior_is_like"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='property',
-            name='name',
+            model_name="property",
+            name="name",
             field=models.CharField(max_length=100, unique=True),
         ),
     ]

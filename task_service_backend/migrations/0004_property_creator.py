@@ -7,14 +7,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('task_service_backend', '0003_rename_property_id_taskproperty_property_and_more'),
+        (
+            "task_service_backend",
+            "0003_rename_property_id_taskproperty_property_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='property',
-            name='creator',
-            field=models.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, related_name='created_properties', to='task_service_backend.user'),
+            model_name="property",
+            name="creator",
+            field=models.ForeignKey(
+                default=None,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="created_properties",
+                to="task_service_backend.user",
+            ),
             preserve_default=False,
         ),
     ]

@@ -7,13 +7,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('task_service_backend', '0008_alter_property_name'),
+        ("task_service_backend", "0008_alter_property_name"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='userproperty',
-            constraint=models.UniqueConstraint(fields=('user', 'property'), name='unique_user_property'),
+            model_name="userproperty",
+            constraint=models.UniqueConstraint(
+                fields=("user", "property"), name="unique_user_property"
+            ),
         ),
     ]

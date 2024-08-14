@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('task_service_backend', '0006_alter_task_owner'),
+        ("task_service_backend", "0006_alter_task_owner"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='userbehavior',
-            name='is_like',
+            model_name="userbehavior",
+            name="is_like",
             field=models.BooleanField(default=True),
         ),
     ]

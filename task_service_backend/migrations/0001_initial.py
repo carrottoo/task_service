@@ -7,18 +7,36 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Task',
+            name="Task",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField(blank=True)),
-                ('output', models.TextField(default='')),
-                ('status', models.CharField(choices=[('Not started', 'Not Started'), ('In progress', 'In Progress'), ('Done', 'Done')], default='Not started', max_length=15)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField(blank=True)),
+                ("output", models.TextField(default="")),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("Not started", "Not Started"),
+                            ("In progress", "In Progress"),
+                            ("Done", "Done"),
+                        ],
+                        default="Not started",
+                        max_length=15,
+                    ),
+                ),
             ],
         ),
     ]
